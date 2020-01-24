@@ -10,10 +10,21 @@ import requests
 from flask import request, abort
 
 
-def is_valid_signature(
-        x_hub_signature,
-        data,
-        private_key=os.environ['WEBHOOK_SECRET']):
+def validate_request(req):
+    abort_code = 418
+    x_hub_signature = req.headers.get('X-Hub-Signature')
+    if not is_valid_signature(x_hub_signature, req.data):
+        print(f'Deploy signature failed: {x_hub_signature}')
+        abort(abort_code)
+
+    if (payload := request.get_json()) is None:
+        print(f'Payload is empty: {payload}')
+        abort(abort_code)
+
+    return payload
+
+
+def is_valid_signature(x_hub_signature, data, private_key=os.environ['WEBHOOK_SECRET']):
     """Verify webhook signature"""
     hash_algorithm, github_signature = x_hub_signature.split('=', 1)
     algorithm = hashlib.__dict__.get(hash_algorithm)
