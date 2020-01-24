@@ -17,7 +17,7 @@ def validate_request(req):
         print(f'Deploy signature failed: {x_hub_signature}')
         abort(abort_code)
 
-    if (payload := request.get_json()) is None:
+    if (payload: = request.get_json()) is None:
         print(f'Payload is empty: {payload}')
         abort(abort_code)
 
@@ -59,7 +59,7 @@ def request_from_github(abort_code=418):
                 if not ua.startswith('GitHub-Hookshot/'):
                     abort(abort_code)
 
-                if not (ip_header := request.headers.get('CF-Connecting-IP')):
+                if not (ip_header: = request.headers.get('CF-Connecting-IP')):
                     # necessary if ip from cloudflare
                     ip_header = request.headers['X-Real-IP']
 
@@ -72,8 +72,7 @@ def request_from_github(abort_code=418):
                     if ip_address(request_ip) in ip_network(block):
                         break
                 else:
-                    print("Unauthorized attempt to deploy by IP {ip}".format(
-                        ip=request_ip))
+                    print("Unauthorized attempt to deploy by IP {ip}".format(ip=request_ip))
                     abort(abort_code)
                 return f(*args, **kwargs)
 
