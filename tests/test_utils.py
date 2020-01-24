@@ -19,7 +19,7 @@ class Test_utils:
 
     def test_jwt_time(self):
         payload = self.set_token()
-        assert payload['exp'] == payload['iat'] + 10*60
+        assert payload['exp'] == payload['iat'] + 10 * 60
 
     def test_jwt_appid(self):
         payload = self.set_token()
