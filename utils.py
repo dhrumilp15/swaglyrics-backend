@@ -9,6 +9,8 @@ import jwt
 import requests
 from flask import request, abort
 
+import json
+
 
 def validate_request(req):
     abort_code = 418
@@ -24,7 +26,10 @@ def validate_request(req):
     return payload
 
 
-def is_valid_signature(x_hub_signature, data, private_key=os.environ['WEBHOOK_SECRET']):
+def is_valid_signature(
+        x_hub_signature,
+        data,
+        private_key=os.environ['WEBHOOK_SECRET']):
     """Verify webhook signature"""
     hash_algorithm, github_signature = x_hub_signature.split('=', 1)
     algorithm = hashlib.__dict__.get(hash_algorithm)
@@ -72,7 +77,9 @@ def request_from_github(abort_code=418):
                     if ip_address(request_ip) in ip_network(block):
                         break
                 else:
-                    print("Unauthorized attempt to deploy by IP {ip}".format(ip=request_ip))
+                    print(
+                        "Unauthorized attempt to deploy by IP {ip}".format(
+                            ip=request_ip))
                     abort(abort_code)
                 return f(*args, **kwargs)
 
@@ -99,7 +106,7 @@ repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
 
 def produce_jwt() -> bytes:
     """
-        Creates a JWT(Json Web Token) based on the downloaded key saved as
+        Creates a JWT(Json Web Token) with the downloaded key saved as
         "swag_pem" in user environment variables
 
         :return: The produced JWT if it can be produced, else None
@@ -148,7 +155,7 @@ def authenticate_github_app(jwtoken: bytes):
         print("Success - token authorized")
         return 0
     else:
-        print(f"Github App Auth failed with status code: {res.status_code}")
+        print(f"GitHub App Auth failed with status code: {res.status_code}")
         return 1
 
 
@@ -177,8 +184,8 @@ def create_iat() -> str:
     """
 
     installation_url = repo_url + "installation"
-
-    headers = genheaders(jwtoken=get_jwt())
+    jwtoken = get_jwt()
+    headers = genheaders(jwtoken=jwtoken)
 
     res = requests.get(
         installation_url,

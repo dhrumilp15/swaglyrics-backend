@@ -4,7 +4,7 @@ import os
 import jwt
 
 
-class Test_utils:
+class Test_auth:
 
     payload = None
 
