@@ -26,10 +26,7 @@ def validate_request(req):
     return payload
 
 
-def is_valid_signature(
-        x_hub_signature,
-        data,
-        private_key=os.environ['WEBHOOK_SECRET']):
+def is_valid_signature(x_hub_signature, data, private_key=os.environ['WEBHOOK_SECRET']):
     """Verify webhook signature"""
     hash_algorithm, github_signature = x_hub_signature.split('=', 1)
     algorithm = hashlib.__dict__.get(hash_algorithm)
@@ -77,9 +74,7 @@ def request_from_github(abort_code=418):
                     if ip_address(request_ip) in ip_network(block):
                         break
                 else:
-                    print(
-                        "Unauthorized attempt to deploy by IP {ip}".format(
-                            ip=request_ip))
+                    print("Unauthorized attempt to deploy by IP {ip}".format(ip=request_ip))
                     abort(abort_code)
                 return f(*args, **kwargs)
 
@@ -99,7 +94,7 @@ APP_ID = os.getenv('swag_appid')
 
 # WARN: Security vulnerabilities - auth methods should eventually be moved
 # to its own class
-expiry_time, jwtoken = None, None
+jwt_expiry_time, jwtoken = None, None
 
 repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
 
@@ -116,13 +111,13 @@ def produce_jwt() -> bytes:
     # api calls
     with open(os.environ["swag_pem"], "rb") as f:
         private_pem = f.read()
-    global jwtoken, expiry_time
+    global jwtoken, jwt_expiry_time
     now = int(time())
 
-    expiry_time = now + 10 * 60  # 10 minutes
+    jwt_expiry_time = now + 10 * 60  # 10 minutes
     payload = {
         "iat": now,
-        "exp": expiry_time,
+        "exp": jwt_expiry_time,
         "iss": APP_ID
     }
     try:
@@ -130,7 +125,7 @@ def produce_jwt() -> bytes:
     except ValueError as v_err:
         print("Value Error: {}".format(v_err))
 
-    print(f"This token expires on {ctime(expiry_time)}")
+    print(f"This token expires on {ctime(jwt_expiry_time)}")
     return jwtoken
 
 
@@ -159,17 +154,19 @@ def authenticate_github_app(jwtoken: bytes):
 def get_jwt() -> bytes:
     """
         A method to ensure we only authorize when needed
-
         :return: An authorized JWT
     """
 
-    global jwtoken, expiry_time
+    global jwtoken, jwt_expiry_time
 
-    if not jwtoken or time() + 30 > expiry_time: # Buffer of 30 seconds
+    if not jwtoken or time() + 30 > jwt_expiry_time:  # Buffer of 30 seconds
         jwtoken = produce_jwt()
         authenticate_github_app(jwtoken)
 
     return jwtoken
+
+
+iatoken, iat_expiry_time = None, None
 
 
 def create_iat() -> str:
@@ -197,26 +194,44 @@ def create_iat() -> str:
     res = requests.post(
         iaturl,
         headers=headers)
+    global iatoken, iat_expiry_time
+    iat_expiry_time = time() + 60 * 60  # 1 hour expiration time
     if res.json()["token"]:
         print("Acquired Installation Access Token")
-        return res.json()["token"]
+        iatoken = res.json()["token"]
+        return iatoken
     else:
         print("Could not acquire Installation Access Token")
 
 
-def authenticate_installation() -> str:
+def authenticate_installation(token) -> str:
     """
     Authorizes the installation access token
     :return: An installation token
     """
 
-    token = create_iat()
+    # token = create_iat()
     headers = genheaders(iatoken=token)
 
     requests.post(
         "https://api.github.com/installation/repositories",
         headers=headers)
     return token
+
+
+def get_iat() -> bytes:
+    """
+        A method to ensure we only authorize when needed
+        :return: An authorized JWT
+    """
+
+    global iatoken, iat_expiry_time
+
+    if not iatoken or time() + 30 > iat_expiry_time:  # Buffer of 30 seconds
+        iatoken = create_iat()
+        authenticate_installation(iatoken)
+
+    return iatoken
 
 
 def genheaders(jwtoken=None, iatoken=None) -> dict:
@@ -237,3 +252,6 @@ def genheaders(jwtoken=None, iatoken=None) -> dict:
         "Authorization": bearer,
         "Accept": "application/vnd.github.machine-man-preview+json"
     }
+
+
+iat = get_iat()
