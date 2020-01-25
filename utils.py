@@ -96,7 +96,8 @@ APP_ID = os.getenv('swag_appid')
 # to its own class
 jwt_expiry_time, jwtoken = None, None
 
-repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
+# repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
+repo_url = "https://api.github.com/repos/dhrumilp15/SwagLyrics-backend/"
 
 
 def produce_jwt() -> bytes:
@@ -112,18 +113,14 @@ def produce_jwt() -> bytes:
     with open(os.environ["swag_pem"], "rb") as f:
         private_pem = f.read()
     global jwtoken, jwt_expiry_time
-    now = int(time())
 
-    jwt_expiry_time = now + 10 * 60  # 10 minutes
     payload = {
-        "iat": now,
-        "exp": jwt_expiry_time,
+        "iat": int(iat: = time()),
+        "exp": int(time()) + 10 * 60,
         "iss": APP_ID
     }
-    try:
-        jwtoken = jwt.encode(payload, private_pem, "RS256")
-    except ValueError as v_err:
-        print("Value Error: {}".format(v_err))
+    jwt_expiry_time = iat + 10 * 60  # 10 minutes
+    jwtoken = jwt.encode(payload, private_pem, "RS256")
 
     print(f"This token expires on {ctime(jwt_expiry_time)}")
     return jwtoken
