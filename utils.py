@@ -90,14 +90,13 @@ def request_from_github(abort_code=418):
         repo_url is the api url of the repo this app is installed on
 '''
 
-APP_ID = os.getenv('swag_appid')
-
+APP_ID = 48161
 # WARN: Security vulnerabilities - auth methods should eventually be moved
 # to its own class
 jwt_expiry_time, jwtoken = None, None
 
-# repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
-repo_url = "https://api.github.com/repos/dhrumilp15/SwagLyrics-backend/"
+repo_url = "https://api.github.com/repos/SwagLyrics/SwagLyrics-For-Spotify/"
+# repo_url = "https://api.github.com/repos/dhrumilp15/SwagLyrics-backend/"
 
 
 def produce_jwt() -> bytes:
@@ -115,7 +114,7 @@ def produce_jwt() -> bytes:
     global jwtoken, jwt_expiry_time
 
     payload = {
-        "iat": int(iat: = time()),
+        "iat": int(iat := time()),
         "exp": int(time()) + 10 * 60,
         "iss": APP_ID
     }

@@ -21,7 +21,7 @@ class Test_auth:
         Tests if the payload's issuer is the app id saved in user's environment variables
         '''
         payload = self.get_token()
-        assert payload['iss'] == os.getenv('swag_appid')
+        assert payload['iss'] == 48161
 
     def test_accuracy_of_jwt_issuing_time(self):
         '''
