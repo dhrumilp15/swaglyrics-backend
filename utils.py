@@ -129,7 +129,6 @@ def produce_jwt() -> bytes:
         jwtoken = jwt.encode(payload, private_pem, "RS256")
     except ValueError as v_err:
         print("Value Error: {}".format(v_err))
-        return
 
     print(f"This token expires on {ctime(expiry_time)}")
     return jwtoken
@@ -153,10 +152,8 @@ def authenticate_github_app(jwtoken: bytes):
 
     if res.status_code == 200:
         print("Success - token authorized")
-        return 0
     else:
         print(f"GitHub App Auth failed with status code: {res.status_code}")
-        return 1
 
 
 def get_jwt() -> bytes:
@@ -168,7 +165,7 @@ def get_jwt() -> bytes:
 
     global jwtoken, expiry_time
 
-    if not jwtoken or time() > expiry_time:
+    if not jwtoken or time() + 30 > expiry_time: # Buffer of 30 seconds
         jwtoken = produce_jwt()
         authenticate_github_app(jwtoken)
 
@@ -196,7 +193,6 @@ def create_iat() -> str:
         iaturl = res.json()["access_tokens_url"]
     else:
         print("Could not acquire the installation access token url!")
-        return
 
     res = requests.post(
         iaturl,
@@ -206,7 +202,6 @@ def create_iat() -> str:
         return res.json()["token"]
     else:
         print("Could not acquire Installation Access Token")
-        return
 
 
 def authenticate_installation() -> str:
