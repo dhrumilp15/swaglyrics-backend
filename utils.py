@@ -1,11 +1,27 @@
 import hashlib
 import hmac
 import os
+import time
+import jwt
 from functools import wraps
 from ipaddress import ip_address, ip_network
 
 import requests
 from flask import request, abort
+
+
+def validate_request(req):
+    abort_code = 418
+    x_hub_signature = req.headers.get('X-Hub-Signature')
+    if not is_valid_signature(x_hub_signature, req.data):
+        print(f'Deploy signature failed: {x_hub_signature}')
+        abort(abort_code)
+
+    if (payload := request.get_json()) is None:
+        print(f'Payload is empty: {payload}')
+        abort(abort_code)
+
+    return payload
 
 
 def is_valid_signature(x_hub_signature, data, private_key=os.environ['WEBHOOK_SECRET']):
@@ -46,6 +62,7 @@ def request_from_github(abort_code=418):
                 if not (ip_header := request.headers.get('CF-Connecting-IP')):
                     # necessary if ip from cloudflare
                     ip_header = request.headers['X-Real-IP']
+
                 request_ip = ip_address(u'{0}'.format(ip_header))
                 meta_json = requests.get('https://api.github.com/meta').json()
                 hook_blocks = meta_json['hooks']
@@ -62,3 +79,35 @@ def request_from_github(abort_code=418):
         return decorated_function
 
     return decorator
+
+# ------------------- authentication functions ------------------- #
+
+
+def get_jwt(app_id: int, private_key):
+
+    payload = {
+        "iat": int(time.time()),
+        "exp": int(time.time()) + (10 * 60),
+        "iss": app_id,
+    }
+    encoded = jwt.encode(payload, private_key, algorithm="RS256")
+    bearer_token = encoded.decode("utf-8")
+
+    return bearer_token
+
+
+def get_installation_access_token(jwt: str, installation_id: int):
+    # doc: https: // developer.github.com/v3/apps/#create-a-new-installation-token
+
+    access_token_url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
+    headers = {"Authorization": f"Bearer {jwt}",
+               "Accept": "application/vnd.github.machine-man-preview+json"}
+    response = requests.post(access_token_url, headers=headers)
+
+    # example response
+    # {
+    #   "token": "v1.1f699f1069f60xxx",
+    #   "expires_at": "2016-07-11T22:14:10Z"
+    # }
+
+    return response
